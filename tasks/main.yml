@@ -12,6 +12,14 @@
     src: files/1c
     dest: /tmp
 
+- name:  Copy the 1c directory to a remote machine
+  tags: 1c_server
+  copy:
+    src: files/apt-repo-add.sh
+    dest: /tmp/1c/apt-repo-add.sh
+    mode: 0700
+    owner: root
+
 - name: add non-free repo
   apt_repository:
     repo: "{{ item }}"
