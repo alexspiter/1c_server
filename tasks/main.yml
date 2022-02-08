@@ -1,0 +1,61 @@
+- name: make tmp 1c dir 
+  tags: 1c_server
+  file:
+    path: /tmp/1c
+    owner: root
+    mode: 0700
+    state: directory
+
+- name:  Copy the 1c directory to a remote machine
+  tags: 1c_server
+  copy:
+    src: files/1c
+    dest: /tmp
+
+- name: add non-free repo
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  with_items:
+    - "deb http://mirror.yandex.ru/debian buster main contrib non-free"
+    - "deb-src http://mirror.yandex.ru/debian buster main contrib non-free"
+    - "deb http://mirror.yandex.ru/debian buster-updates main contrib non-free"
+    - "deb-src http://mirror.yandex.ru/debian buster-updates main contrib non-free"
+    - "deb http://security.debian.org/ buster/updates main contrib non-free"
+    - "deb-src http://security.debian.org/ buster/updates main contrib non-free"
+  when: ansible_distribution_release == 'buster'
+
+- name: apt dist-upgrade
+  apt:
+    upgrade: dist
+    autoremove: true
+
+- name: install packages
+  tags: install-packages
+  package:
+    name: "{{install_list}}"
+    state: present 
+
+- name: Ensure a locale exists
+  community.general.locale_gen:
+    name: ru_RU.UTF-8
+    state: present
+
+
+- import_tasks: locale.yml
+ 
+- name: Install all 1c*.deb package
+  apt:
+    deb: "/tmp/1c/{{ item }}"
+  with_items:
+    - '1c-enterprise83-common_{{ onec_version }}_{{ onec_platform }}.deb'
+    - '1c-enterprise83-server_{{ onec_version }}_{{ onec_platform }}.deb'
+    - '1c-enterprise83-ws_{{ onec_version }}_{{ onec_platform }}.deb'
+
+- name: start and enable 1c server
+  systemd:
+    name:    srv1cv83
+    state:   started
+    enabled: true
+
+- import_tasks: postgres.yml

@@ -1,0 +1,67 @@
+---
+onec_version: "8.3.13-1690"
+onec_platform: "amd64"
+
+locale: "ru_RU.UTF-8"
+LC_time: "ru_RU.UTF-8"
+locales_generated:
+  - "en_US.UTF-8"
+  - "ru_RU.UTF-8" 
+
+timezone: "Europe/Moscow"
+
+install_list:
+  - ttf-mscorefonts-installer
+  - imagemagick
+  - unixodbc
+  - curl
+  - mc
+  - pigz
+  - net-tools
+  - htop
+  - gnupg
+  - python3-pip
+  - libpq-dev
+
+pg_version: "postgrespro-1c-13"
+
+postgresql_databases:
+  - name: "db1"
+  - name: "db2"
+
+backup_pg_path: /mnt/backup/postgres
+backup_pg_cron:
+  name: "backup bases"
+  hour: "8,20"
+  min: 30
+
+pg_temp_dir: /var/lib/pgsql_stats_tmp
+postgres_user_password: #SuperSecret#
+postgresql_admin_user: "postgres"
+postgresql_default_auth_method: "trust"
+postgresql_default_auth_method_hosts: "md5"
+
+postgresql_service_user: "{{ postgresql_admin_user }}"
+postgresql_service_user_pgsql_profile: false
+postgresql_service_group: "{{ postgresql_admin_user }}"
+postgresql_service_enabled: true
+postgresql_database_owner: "{{ postgresql_admin_user }}"
+postgresql_encoding: "UTF-8"
+
+postgresql_locale_parts:
+  - "ru_RU" # Locale
+  - "UTF-8" # Encoding
+postgresql_locale: "{{ postgresql_locale_parts | join('.') }}"
+postgresql_ctype_parts:
+  - "ru_RU" # Locale
+  - "UTF-8" # Encoding
+postgresql_ctype: "{{ postgresql_ctype_parts | join('.') }}"
+
+postgresql_listen_addresses:
+  - "127.0.0.1"
+postgresql_port: 5432
+
+postgresql_max_connections: 100
+postgresql_superuser_reserved_connections: 3
+
+

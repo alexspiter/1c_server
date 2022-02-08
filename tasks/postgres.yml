@@ -1,0 +1,97 @@
+---
+- name: run script for add repo
+  command: "bash /tmp/1c/apt-repo-add.sh"
+
+- name: install pgpro13-1c
+  apt:
+    name: "{{pg_version}}"
+    state: latest
+    update_cache: true
+
+- name: ensure postgres is running
+  systemd:
+    name:    "{{ pg_version}}"
+    enabled: true
+    state:   started
+
+- name: install psycopg2
+  pip:
+    name:
+      - psycopg2-binary
+      - pip
+    state: latest
+  become: true
+
+
+- name: "set password "
+  command: sudo -u postgres /usr/bin/psql -U {{postgresql_admin_user}} -c "alter user {{postgresql_admin_user}} with password '{{ postgres_user_password }}';"
+
+- name: PostgreSQL | Make sure the PostgreSQL databases are present
+  postgresql_db:
+    name: "{{item.name}}"
+    owner: "{{ item.owner | default(postgresql_database_owner) }}"
+    encoding: "{{ item.encoding | default(postgresql_encoding) }}"
+    lc_collate: "{{ item.lc_collate | default(postgresql_locale) }}"
+    lc_ctype: "{{ item.lc_ctype | default(postgresql_ctype) }}"
+    port: "{{postgresql_port}}"
+    template: "template0"
+    login_host: "127.0.0.1"
+    login_password: "{{ postgres_user_password }}"
+    state: present
+    login_user: "{{postgresql_admin_user}}"
+  become: yes
+  become_user: "{{postgresql_admin_user}}"
+  with_items: "{{postgresql_databases}}"
+  when: postgresql_databases|length > 0
+
+- name: make tmp pg  dir
+  file:
+    path: "{{ pg_temp_dir}}"
+    owner: "{{postgresql_admin_user}}"
+    group: "{{postgresql_admin_user}}"
+    mode: 0700
+    state: directory
+
+- name: Mount tmp_pg_dir
+  mount:
+    path: tmpfs
+    src: "{{ pg_temp_dir}}"
+    fstype: tmpfs
+    opts: size=512M,uid=postgres,gid=postgres 
+    state: present
+
+- name: insert line in postgres config
+  ansible.builtin.lineinfile:
+    path:  /var/lib/pgpro/1c-13/data/postgresql.conf
+    line: "stats_temp_directory = '/var/lib/pgsql_stats_tmp'"
+    state: present
+
+- name: restart postgres 
+  systemd:
+    name:    "{{ pg_version}}"
+    state:   restarted
+
+- name: make backup dir
+  file:
+    path: "{{ backup_pg_path }}"
+    owner: "{{postgresql_admin_user}}"
+    group: "{{postgresql_admin_user}}"
+    mode: 0700
+    state: directory
+
+- name: copy backup script
+  template:
+      src: backup_pg.sh.j2
+      dest: "/opt/backup_pg.sh"
+      owner: "{{postgresql_admin_user}}"
+      group: "{{postgresql_admin_user}}"
+      mode: 0700
+
+- name: make cron job
+  cron:
+    state: present
+    user: "{{postgresql_admin_user}}"
+    name: "backup pg kassa's bases"
+    minute: "{{ backup_pg_cron.min }}"
+    hour: "{{ backup_pg_cron.hour }}"
+    job: "/opt/backup_pg.sh"

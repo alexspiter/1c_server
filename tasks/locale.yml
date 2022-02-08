@@ -1,0 +1,30 @@
+---
+- name: Our locale-setting code only supports Debian-based systems (for now)
+  when: ansible_os_family == "Debian"
+  block:
+    - name: Generate the selected locales
+      community.general.locale_gen:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ locales_generated }}"
+      notify: "rebuild locales database"
+    
+    - name: Set the default locale
+      ansible.builtin.lineinfile:
+        dest: /etc/default/locale
+        regexp: "^LANG="
+        line: "LANG={{ locale }}"
+      notify: "rebuild locales database"
+
+    - name: "Set LC_TIME to {{ LC_time }}"
+      ansible.builtin.lineinfile:
+        dest: /etc/default/locale
+        regexp: "^LC_TIME="
+        line: "LC_TIME={{ LC_time }}"
+      notify: "rebuild locales database"
+
+- name: "Set localtime to {{ timezone }}"
+  ansible.builtin.copy:
+    remote_src: yes
+    src: "/usr/share/zoneinfo/{{ timezone }}"
+    dest: /etc/localtime

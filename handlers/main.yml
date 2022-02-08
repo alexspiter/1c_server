@@ -1,0 +1,7 @@
+---
+# handlers file for ansible-role-1c_server
+- name: "rebuild locales database"
+  ansible.builtin.command: dpkg-reconfigure -f noninteractive locales
+
+- name: "update timezone data"
+  ansible.builtin.command: dpkg-reconfigure --frontend noninteractive tzdata
